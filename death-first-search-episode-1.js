@@ -2,68 +2,94 @@
    https://www.codingame.com/training/medium/death-first-search-episode-1
 */ 
 
-/**
- * Auto-generated code below aims at helping you parse
- * the standard input according to the problem statement.
- **/
+// v2 with AI
 
+// Parse initial input
 var inputs = readline().split(' ');
-const N = parseInt(inputs[0]); // the total number of nodes in the level, including the gateways
-const L = parseInt(inputs[1]); // the number of links
-const E = parseInt(inputs[2]); // the number of exit gateways
-const linkArray = [];
-const gateArray = [];
+const N = parseInt(inputs[0]); // total nodes
+const L = parseInt(inputs[1]); // number of links
+const E = parseInt(inputs[2]); // number of gateways
+
+// Build adjacency list for the graph
+const graph = new Map();
+for (let i = 0; i < N; i++) {
+    graph.set(i, new Set());
+}
+
+// Store all links
 for (let i = 0; i < L; i++) {
     var inputs = readline().split(' ');
-    const N1 = parseInt(inputs[0]); // N1 and N2 defines a link between these nodes
-    const N2 = parseInt(inputs[1]);
-    if (N1 < N2) {
-        linkArray.push(`(${N1}, ${N2})`);
-    } else {
-        linkArray.push(`(${N2}, ${N1})`);
-    }
+    const n1 = parseInt(inputs[0]);
+    const n2 = parseInt(inputs[1]);
+    graph.get(n1).add(n2);
+    graph.get(n2).add(n1);
 }
+
+// Store gateway nodes
+const gateways = new Set();
 for (let i = 0; i < E; i++) {
-    const EI = parseInt(readline()); // the index of a gateway node
-    gateArray.push(EI)
+    const ei = parseInt(readline());
+    gateways.add(ei);
 }
 
-
-// game loop
-while (true) {
-    const SI = parseInt(readline()); // The index of the node on which the Bobnet agent is positioned this turn
-
-    // Write an action using console.log()
-    // To debug: console.error('Debug messages...');
-
-    const reg = /^\((\w+), (\w+)\)$/;
-
-    const targetLinks = [];
-    gateArray.forEach((gate) => {
-        if (gate < SI) {
-            targetLinks.push(`(${gate}, ${SI})`);
-        } else {
-            targetLinks.push(`(${SI}, ${gate})`);
+// BFS to find shortest path to any gateway
+function findPathToGateway(start) {
+    const queue = [[start, [start]]]; // [node, path]
+    const visited = new Set([start]);
+    
+    while (queue.length > 0) {
+        const [node, path] = queue.shift();
+        
+        // Check if current node is a gateway
+        if (gateways.has(node)) {
+            return path;
         }
-    })
-
-    let found = targetLinks.find((item) => {
-        return linkArray.find((link) => {
-            return item == link
-        });
-    });
-
-    if (found) {
-        var tester = reg.exec(found);
-        console.log(`${tester[1]} ${tester[2]}`)
-    } else {
-        for (let i = 0; i < linkArray.length; i += 1) {
-            var tester = reg.exec(linkArray[i]);
-            if (tester[2] == gateArray[0] || tester[1] == gateArray[0]) {
-                console.log(`${tester[1]} ${tester[2]}`)
-                break;
+        
+        // Explore neighbors
+        for (const neighbor of graph.get(node)) {
+            if (!visited.has(neighbor)) {
+                visited.add(neighbor);
+                queue.push([neighbor, [...path, neighbor]]);
             }
         }
     }
-    // Example: 0 1 are the indices of the nodes you wish to sever the link between
+    
+    return null; // No path found
+}
+
+// Find the link to sever: the one closest to agent on path to gateway
+function findLinkToSever(agentPos) {
+    const path = findPathToGateway(agentPos);
+    
+    if (!path || path.length < 2) {
+        // Fallback: sever any link connected to a gateway
+        for (const gateway of gateways) {
+            const neighbors = graph.get(gateway);
+            if (neighbors.size > 0) {
+                const neighbor = neighbors.values().next().value;
+                return [gateway, neighbor];
+            }
+        }
+        return null;
+    }
+    
+    // Return the first link in the path (agent -> next node)
+    return [path[0], path[1]];
+}
+
+// Game loop
+while (true) {
+    const SI = parseInt(readline()); // agent position
+    
+    const linkToSever = findLinkToSever(SI);
+    
+    if (linkToSever) {
+        const [n1, n2] = linkToSever;
+        
+        // Remove the link from graph
+        graph.get(n1).delete(n2);
+        graph.get(n2).delete(n1);
+        
+        console.log(`${n1} ${n2}`);
+    }
 }
