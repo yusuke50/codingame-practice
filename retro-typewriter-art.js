@@ -2,36 +2,29 @@
    https://www.codingame.com/training/easy/retro-typewriter-art
 */
 
+// v2 with AI
+
 const T = readline();
-const splitArray = T.split(' ')
-const arrayLen = splitArray.length;
-let ans = '';
-splitArray.forEach((item) => {
-    if (item == 'nl') {
-        ans += '\n'
-    } else if (item.includes('sp')) {
-        let count = +item.replace('sp', '');
-        for (let i = 0; i < count; i += 1) {
-            ans += ' ';
-        }
-    } else if (item.includes('bS')) {
-        let count = +item.replace('bS', '');
-        for (let i = 0; i < count; i += 1) {
-            ans += '\\';
-        }
-    } else if (item.includes('sQ')) {
-        let count = +item.replace('sQ', '');
-        for (let i = 0; i < count; i += 1) {
-            ans += `'`;
-        }
-    } else {
-        let re = /(\d+)([\s\S{1}])/i;
-        let symbol = item.match(re)[2];
-        let count = +item.match(re)[1];
-        for (let i = 0; i < count; i += 1) {
-            ans += symbol
+
+const specialCase = {
+    nl: '\n',
+    sp: ' ',
+    bS: '\\',
+    sQ: "'"
+};
+
+const decode = (token) => {
+    for (const [key, char] of Object.entries(specialCase)) {
+        if (token === key) return char;
+
+        if (token.includes(key)) {
+            const n = +token.replace(key, '')
+            return char.repeat(n);
         }
     }
-})
 
-console.log(ans);
+    const [_all, count, char] = token.match(/^(\d+)([\s\S])$/i);
+    return char.repeat(+count);
+};
+
+console.log(T.split(' ').map(decode).join(''))
